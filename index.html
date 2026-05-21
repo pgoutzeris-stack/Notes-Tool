@@ -88,9 +88,12 @@ import { initApp } from './js/app.js';
 
 const { createClient } = window.supabase;
 const sb = createClient(SB_URL, SB_ANON, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: window.localStorage },
+  auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false, storage: window.localStorage },
 });
 window.__rootsSupabaseClient = sb;
+if (document.documentElement.classList.contains('in-iframe') && window.RootsUserBridge?.syncAuthFromParentStorage) {
+  void window.RootsUserBridge.syncAuthFromParentStorage();
+}
 const LOGIN_HTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Anmelden';
 
 function resetLoginBtn() {
@@ -137,6 +140,9 @@ window.addEventListener('message', (e) => {
   if (e.data?.type === 'roots-notes-refresh') {
     void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
   }
+  if (e.data?.type === 'roots-profile-updated' && e.data.profile && window.RootsUser) {
+    window.RootsUser._p = { ...(window.RootsUser._p || {}), ...e.data.profile };
+  }
 });
 
 window.addEventListener('roots-auth-ready', (e) => {
@@ -146,13 +152,17 @@ window.addEventListener('roots-auth-ready', (e) => {
 const notesInIframe = document.documentElement.classList.contains('in-iframe');
 if (!notesInIframe) {
   sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') { showLogin(); return; }
+    if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+      void onSession(session);
+    }
+  });
 }
-sb.auth.onAuthStateChange((event, session) => {
-  if (notesInIframe && (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT')) return;
-  if (event === 'SIGNED_OUT') { showLogin(); return; }
-  if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-    if (session) void onSession(session);
-  }
+
+window.addEventListener('roots-auth-signed-out', () => {
+  showLogin();
+  if (window.RootsUser) { window.RootsUser._uid = null; window.RootsUser._p = null; }
 });
 
 document.getElementById('form-login').addEventListener('submit', async (e) => {
