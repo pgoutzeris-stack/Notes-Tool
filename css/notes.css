@@ -194,7 +194,9 @@ html.in-iframe #screen-loading { display: flex; z-index: 1; }
 html.in-iframe #screen-loading.is-done { display: none !important; }
 html.in-iframe .iframe-auth-hint:not([hidden]) { z-index: 2; }
 html.in-iframe body.body-dashboard #screen-loading,
-html.in-iframe body.body-dashboard .iframe-auth-hint[hidden] { display: none !important; }
+html.in-iframe body.body-dashboard .iframe-auth-hint[hidden],
+html.in-iframe body.body-editor #screen-loading,
+html.in-iframe body.body-editor .iframe-auth-hint { display: none !important; }
 #screen-editor { position: relative; z-index: 3; }
 
 .iframe-auth-hint {

@@ -85,7 +85,10 @@ function paintDashboard() {
 function showDashboard() {
   document.getElementById("screen-dashboard").style.display = "block";
   document.getElementById("screen-editor").style.display = "none";
+  document.getElementById("screen-auth-hint")?.setAttribute("hidden", "");
+  document.getElementById("screen-loading")?.classList.add("is-done");
   document.body.classList.add("body-dashboard");
+  document.body.classList.remove("body-editor");
 }
 
 function showEditor() {
@@ -93,6 +96,7 @@ function showEditor() {
   document.getElementById("screen-editor").style.display = "block";
   document.getElementById("screen-auth-hint")?.setAttribute("hidden", "");
   document.getElementById("screen-loading")?.classList.add("is-done");
+  document.body.classList.add("body-editor");
   document.body.classList.remove("body-dashboard");
 }
 
