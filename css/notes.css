@@ -193,6 +193,18 @@ html.in-iframe .dash-header { padding-top: .5rem; }
 html.in-iframe #screen-loading { display: flex; }
 html.in-iframe #screen-loading.is-done { display: none; }
 
+.iframe-auth-hint {
+  display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;
+  gap: .75rem; padding: 2rem; text-align: center; color: var(--muted); background: var(--app-bg);
+}
+.iframe-auth-hint:not([hidden]) { display: flex; }
+.iframe-auth-hint i { font-size: 2rem; color: var(--brand); opacity: .7; }
+.iframe-auth-hint strong { color: var(--ink); font-size: 1.1rem; }
+.notes-error-banner {
+  margin-bottom: 1rem; padding: .85rem 1rem; border-radius: 10px; border: 1px solid #fecaca;
+  background: #fef2f2; color: #b91c1c; font-size: .88rem; display: flex; align-items: center; gap: .5rem;
+}
+
 @media (max-width: 900px) {
   .dash-layout { grid-template-columns: 1fr; }
   .editor-body { grid-template-columns: 52px 1fr; }

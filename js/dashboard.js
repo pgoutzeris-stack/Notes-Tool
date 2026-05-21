@@ -1,7 +1,7 @@
 import { escapeHtml, formatDate } from "./utils.js";
 
 export function renderDashboard(root, state, handlers) {
-  const { documents, folders, filter } = state;
+  const { documents, folders, filter, loadError } = state;
   const filtered = filterDocuments(documents, filter);
 
   root.innerHTML = `
@@ -45,6 +45,7 @@ export function renderDashboard(root, state, handlers) {
           </div>
         </aside>
         <section class="dash-main">
+          ${loadError ? `<div class="notes-error-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(loadError)}</div>` : ""}
           <div class="dash-toolbar">
             <div class="search-wrap">
               <i class="fa-solid fa-magnifying-glass"></i>

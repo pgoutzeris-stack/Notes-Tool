@@ -14,6 +14,7 @@ let state = {
   documents: [],
   folders: [],
   clusters: [],
+  loadError: null,
   filter: { folderId: "all", cluster: null, q: "", sort: "updated", view: "grid" },
   currentDoc: null,
 };
@@ -22,10 +23,16 @@ let editor;
 const saveDebounced = debounce(saveCurrentDoc, 1200);
 
 export function initApp(supabase) {
-  if (booted) return;
   sb = supabase;
   userId = window.RootsUser?._uid;
-  if (!userId) return;
+  if (!userId) {
+    showAuthHint();
+    return;
+  }
+  if (booted) {
+    void loadDashboard();
+    return;
+  }
   booted = true;
 
   editor = new NotesEditor(document.getElementById("screen-editor"), {
@@ -45,14 +52,19 @@ export function initApp(supabase) {
 
 async function loadDashboard() {
   showDashboard();
+  paintDashboard();
   try {
     await ensureDefaultFolder(sb, userId);
     state.folders = await listFolders(sb, userId);
     state.documents = await listDocuments(sb, userId);
     state.clusters = extractClusters(state.documents);
+    state.loadError = null;
     paintDashboard();
   } catch (e) {
-    toast(e.message || "Notizen konnten nicht geladen werden", "error");
+    console.error("Notes loadDashboard", e);
+    state.loadError = e.message || "Notizen konnten nicht geladen werden";
+    paintDashboard();
+    toast(state.loadError, "error");
   }
 }
 
@@ -188,3 +200,11 @@ function toast(msg, kind = "info") {
 }
 
 window.notesToast = toast;
+
+function showAuthHint() {
+  const el = document.getElementById("screen-auth-hint");
+  if (el) el.hidden = false;
+  document.getElementById("screen-loading")?.classList.add("is-done");
+  document.getElementById("screen-dashboard").style.display = "none";
+  document.getElementById("screen-editor").style.display = "none";
+}

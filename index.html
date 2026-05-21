@@ -48,6 +48,11 @@
     <i class="fa-solid fa-circle-notch fa-spin"></i>
     <span>Notes Tool wird geladen…</span>
   </div>
+  <div id="screen-auth-hint" class="iframe-auth-hint" hidden>
+    <i class="fa-solid fa-lock"></i>
+    <strong>Anmeldung erforderlich</strong>
+    <p>Bitte melde dich im ROOTS Intranet an und öffne das Notes Tool erneut.</p>
+  </div>
   <div id="toast-container" aria-live="polite"></div>
 
 <script>
@@ -92,25 +97,44 @@ function resetLoginBtn() {
 
 function showLogin() {
   document.getElementById('screen-loading')?.classList.add('is-done');
+  document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
   document.getElementById('screen-dashboard').style.display = 'none';
   document.getElementById('screen-editor').style.display = 'none';
+  if (document.documentElement.classList.contains('in-iframe')) {
+    document.getElementById('screen-auth-hint')?.removeAttribute('hidden');
+    return;
+  }
   document.getElementById('screen-login').style.display = 'flex';
   document.body.classList.remove('body-dashboard');
   resetLoginBtn();
 }
 
 async function onSession(session) {
-  if (!session) {
-    showLogin();
-    if (window.RootsUser) { window.RootsUser._uid = null; window.RootsUser._p = null; }
-    return;
+  try {
+    if (!session) {
+      showLogin();
+      if (window.RootsUser) { window.RootsUser._uid = null; window.RootsUser._p = null; }
+      return;
+    }
+    await window.RootsUser._loadAndMount(sb);
+    document.getElementById('screen-login').style.display = 'none';
+    document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
+    document.body.classList.add('body-dashboard');
+    initApp(sb);
+  } catch (e) {
+    console.error('Notes onSession', e);
+    window.notesToast?.(e.message || 'Start fehlgeschlagen', 'error');
+  } finally {
+    document.getElementById('screen-loading')?.classList.add('is-done');
   }
-  await window.RootsUser._loadAndMount(sb);
-  document.getElementById('screen-login').style.display = 'none';
-  document.getElementById('screen-loading')?.classList.add('is-done');
-  document.body.classList.add('body-dashboard');
-  initApp(sb);
 }
+
+window.addEventListener('message', (e) => {
+  if (e.origin !== 'https://pgoutzeris-stack.github.io') return;
+  if (e.data?.type === 'roots-notes-refresh') {
+    void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+  }
+});
 
 sb.auth.getSession().then(({ data: { session } }) => onSession(session));
 sb.auth.onAuthStateChange((event, session) => {
