@@ -127,7 +127,7 @@ function showLogin() {
 async function onSession(session) {
   try {
     if (!session) {
-      if (notesInIframe && document.body.classList.contains('body-dashboard')) return;
+      if (notesInIframe && (document.body.classList.contains('body-dashboard') || document.body.classList.contains('body-editor'))) return;
       showLogin();
       if (window.RootsUser) { window.RootsUser._uid = null; window.RootsUser._p = null; }
       return;

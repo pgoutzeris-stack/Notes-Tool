@@ -7,7 +7,7 @@ const LOGO_SVG = `<svg viewBox="0 0 16 16" fill="none" width="16" height="16">
 
 export function appHeaderHtml(subtitle) {
   return `
-    <header class="sop-header" id="app-topbar" role="banner">
+    <header class="sop-header app-topbar" role="banner">
       <div class="header-left">
         <div class="logo-mark" aria-hidden="true">${LOGO_SVG}</div>
         <span class="wordmark">ROOTS <span>NOTES</span></span>
@@ -15,25 +15,33 @@ export function appHeaderHtml(subtitle) {
         <span class="header-sub">${subtitle}</span>
       </div>
       <div class="header-right">
-        <div class="dash-avatar" id="user-avatar">?</div>
-        <span id="user-name-topbar" class="header-sub">…</span>
+        <div class="dash-avatar app-user-avatar">?</div>
+        <span class="app-user-name header-sub">…</span>
       </div>
     </header>`;
 }
 
+function activeHeaderRoot() {
+  if (document.body.classList.contains("body-editor")) {
+    return document.getElementById("screen-editor");
+  }
+  return document.getElementById("screen-dashboard");
+}
+
 export function updateAppHeader() {
   const p = window.RootsUser?._p || {};
-  const name = p.full_name || p.email || '…';
+  const name = p.full_name || p.email || "…";
   const label = p.position ? `${name} · ${p.position}` : name;
-  const av = document.getElementById('user-avatar');
-  const nm = document.getElementById('user-name-topbar');
+  const root = activeHeaderRoot();
+  const av = root?.querySelector(".app-user-avatar");
+  const nm = root?.querySelector(".app-user-name");
   if (nm) nm.textContent = label;
   if (!av) return;
   if (p.avatar_url) {
     av.innerHTML = `<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    av.style.background = 'transparent';
+    av.style.background = "transparent";
   } else {
-    av.textContent = window.RootsUser?._initials?.(p.full_name || p.email) || '?';
-    av.style.background = '';
+    av.textContent = window.RootsUser?._initials?.(p.full_name || p.email) || "?";
+    av.style.background = "";
   }
 }

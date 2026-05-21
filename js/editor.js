@@ -167,7 +167,14 @@ export class NotesEditor {
 
   load(doc) {
     this.doc = doc;
-    if (!this.doc.content) this.doc.content = { version: 1, viewport: { x: 0, y: 0, zoom: 1 }, objects: [], presentation: { slides: [] } };
+    if (typeof this.doc.content === "string") {
+      try { this.doc.content = JSON.parse(this.doc.content); } catch { this.doc.content = null; }
+    }
+    if (!this.doc.content || typeof this.doc.content !== "object") {
+      this.doc.content = { version: 1, viewport: { x: 0, y: 0, zoom: 1 }, objects: [], presentation: { slides: [] } };
+    }
+    if (!this.doc.content.viewport) this.doc.content.viewport = { x: 0, y: 0, zoom: 1 };
+    if (!Array.isArray(this.doc.content.objects)) this.doc.content.objects = [];
     this.titleInput.value = doc.title || "";
     this.selected.clear();
     this.pushHistory(true);
@@ -474,6 +481,8 @@ export class NotesEditor {
       this.root.querySelector("#insp-font").value = first.fontSize || 16;
       this.root.querySelector("#insp-opacity").value = first.opacity ?? 1;
     }
+    const showFormat = first && ["text", "sticky"].includes(first.type);
+    this.formatBar?.classList.toggle("is-visible", showFormat);
   }
 
   applyInspector() {

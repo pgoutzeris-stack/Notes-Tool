@@ -91,9 +91,9 @@ input:focus, select:focus { border-color: var(--brand); box-shadow: var(--shadow
   background: var(--app-bg); overflow: hidden;
 }
 #screen-dashboard, #screen-editor {
-  display: none; flex-direction: column; z-index: 2;
+  display: none; flex-direction: column; z-index: 10;
 }
-#screen-loading, #screen-auth-hint { display: none; z-index: 5; }
+#screen-loading, #screen-auth-hint { display: none; z-index: 20; }
 .dash-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .dash-sidebar {
   width: 260px; background: var(--bg); border-right: 1px solid var(--line);
@@ -159,7 +159,11 @@ input:focus, select:focus { border-color: var(--brand); box-shadow: var(--shadow
 .notes-empty strong { display: block; color: var(--ink); margin-bottom: .35rem; }
 
 /* Editor (Whiteboard-style full viewport) */
-.editor-shell { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+#screen-editor > .editor-shell {
+  flex: 1; min-height: 0; width: 100%;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.editor-shell { display: flex; flex-direction: column; overflow: hidden; }
 .editor-subbar {
   display: flex; align-items: center; gap: .75rem; padding: 1rem 2rem; background: var(--bg);
   border-bottom: 1px solid var(--line); flex-shrink: 0; flex-wrap: wrap;
@@ -204,8 +208,10 @@ input:focus, select:focus { border-color: var(--brand); box-shadow: var(--shadow
 .editor-inspector label { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .75rem; font-size: .78rem; color: var(--muted); }
 .format-bar {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 30;
-  display: flex; gap: .25rem; padding: .35rem; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+  display: none; gap: .25rem; padding: .35rem; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: var(--shadow);
 }
+.format-bar.is-visible { display: flex; }
 .format-bar button, .format-bar select { height: 34px; min-width: 34px; border: none; background: transparent; border-radius: 8px; cursor: pointer; }
 .format-bar button:hover { background: var(--brand-light); color: var(--brand); }
 .present-overlay {
