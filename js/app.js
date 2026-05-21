@@ -4,6 +4,7 @@ import {
 } from "./api.js";
 import { renderDashboard, extractClusters } from "./dashboard.js";
 import { NotesEditor } from "./editor.js";
+import { updateAppHeader } from "./header.js";
 import { exportJson, exportHtml, exportMarkdown, exportPng, exportPdf } from "./export.js";
 import { debounce } from "./utils.js";
 
@@ -25,6 +26,7 @@ const saveDebounced = debounce(saveCurrentDoc, 1200);
 export function initApp(supabase) {
   sb = supabase;
   userId = window.RootsUser?._uid;
+  window.notesUpdateHeader = updateAppHeader;
   if (!userId) {
     showAuthHint();
     return;
@@ -98,6 +100,7 @@ function showEditor() {
   document.getElementById("screen-loading")?.classList.add("is-done");
   document.body.classList.add("body-editor");
   document.body.classList.remove("body-dashboard");
+  updateAppHeader();
 }
 
 async function createNewNote() {

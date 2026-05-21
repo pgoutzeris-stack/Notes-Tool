@@ -1,4 +1,5 @@
 import { escapeHtml, formatDate } from "./utils.js";
+import { appHeaderHtml, updateAppHeader } from "./header.js";
 
 export function renderDashboard(root, state, handlers) {
   const { documents, folders, filter, loadError } = state;
@@ -6,16 +7,11 @@ export function renderDashboard(root, state, handlers) {
 
   root.innerHTML = `
     <div class="dash-shell">
-      <header class="dash-header">
-        <div>
-          <span class="dash-eyebrow"><i class="fa-solid fa-note-sticky"></i> ROOTS Notes</span>
-          <h1>Deine Notizen</h1>
-          <p class="dash-sub">Organisieren, visualisieren und exportieren – alles sicher in deinem Account.</p>
-        </div>
-        <div class="dash-header-actions">
-          <button type="button" class="btn-primary" id="btn-new-note"><i class="fa-solid fa-plus"></i> Neue Notiz</button>
-        </div>
-      </header>
+      ${appHeaderHtml("Organisieren, visualisieren und exportieren")}
+      <div class="dash-greeting">
+        <h1>Deine Notizen</h1>
+        <p>Erstelle visuelle Notizen mit Formen, Tabellen und Verbindern – alles sicher in deinem Account.</p>
+      </div>
       <div class="dash-layout">
         <aside class="dash-sidebar">
           <div class="sidebar-block">
@@ -47,6 +43,7 @@ export function renderDashboard(root, state, handlers) {
         <section class="dash-main">
           ${loadError ? `<div class="notes-error-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(loadError)}</div>` : ""}
           <div class="dash-toolbar">
+            <button type="button" class="btn-primary" id="btn-new-note"><i class="fa-solid fa-plus"></i> Neue Notiz</button>
             <div class="search-wrap">
               <i class="fa-solid fa-magnifying-glass"></i>
               <input type="search" id="dash-search" placeholder="Notizen durchsuchen…" value="${escapeHtml(filter.q || "")}">
@@ -73,6 +70,7 @@ export function renderDashboard(root, state, handlers) {
       </div>
     </div>`;
 
+  updateAppHeader();
   root.querySelector("#btn-new-note")?.addEventListener("click", handlers.onNew);
   root.querySelector("#btn-new-folder")?.addEventListener("click", handlers.onNewFolder);
   root.querySelector("#dash-search")?.addEventListener("input", (e) => handlers.onFilter({ q: e.target.value }));

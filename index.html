@@ -154,6 +154,7 @@ window.addEventListener('message', (e) => {
   }
   if (e.data?.type === 'roots-profile-updated' && e.data.profile && window.RootsUser) {
     window.RootsUser._p = { ...(window.RootsUser._p || {}), ...e.data.profile };
+    window.notesUpdateHeader?.();
   }
 });
 

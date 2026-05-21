@@ -1,4 +1,5 @@
 import { uid, clamp, debounce } from "./utils.js";
+import { appHeaderHtml, updateAppHeader } from "./header.js";
 
 const GRID = 8;
 const MIN_ZOOM = 0.15;
@@ -19,17 +20,19 @@ export class NotesEditor {
     this._renderConnectors = debounce(() => this.renderConnectors(), 16);
 
     this.buildUi();
+    updateAppHeader();
     this.bindEvents();
   }
 
   buildUi() {
     this.root.innerHTML = `
       <div class="editor-shell">
-        <div class="editor-topbar">
+        ${appHeaderHtml("Notiz bearbeiten")}
+        <div class="editor-subbar">
           <button type="button" class="btn-ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> Übersicht</button>
           <input type="text" class="editor-title-input" id="editor-title" placeholder="Titel der Notiz" />
           <div class="editor-save-status" id="editor-save-status">Gespeichert</div>
-          <div class="editor-topbar-actions">
+          <div class="editor-subbar-actions">
             <button type="button" class="btn-ghost" data-action="undo" title="Rückgängig"><i class="fa-solid fa-rotate-left"></i></button>
             <button type="button" class="btn-ghost" data-action="redo" title="Wiederholen"><i class="fa-solid fa-rotate-right"></i></button>
             <button type="button" class="btn-ghost" data-export="png"><i class="fa-solid fa-image"></i> PNG</button>
