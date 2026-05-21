@@ -87,7 +87,9 @@ import { SB_URL, SB_ANON } from './config.js';
 import { initApp } from './app.js';
 
 const { createClient } = window.supabase;
-const sb = createClient(SB_URL, SB_ANON);
+const sb = createClient(SB_URL, SB_ANON, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: window.localStorage },
+});
 window.__rootsSupabaseClient = sb;
 const LOGIN_HTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Anmelden';
 
@@ -137,10 +139,16 @@ window.addEventListener('message', (e) => {
   }
 });
 
+window.addEventListener('roots-auth-ready', (e) => {
+  if (e.detail?.session) void onSession(e.detail.session);
+});
+
 sb.auth.getSession().then(({ data: { session } }) => onSession(session));
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') { showLogin(); return; }
-  if (session) onSession(session);
+  if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    if (session) void onSession(session);
+  }
 });
 
 document.getElementById('form-login').addEventListener('submit', async (e) => {
