@@ -69,7 +69,7 @@ window.RootsUser = window.RootsUser || {
     this._uid = session.user.id;
     const { data } = await sb.schema('users').from('profiles')
       .select('id,email,full_name,position,avatar_url,app_role')
-      .eq('id', this._uid).single();
+      .eq('id', this._uid).maybeSingle();
     this._p = data || { id: this._uid, email: session.user.email, app_role: 'reader' };
   },
   isAdmin() { return String(this._p?.app_role || '').trim() === 'admin'; },
@@ -84,7 +84,7 @@ try {
 
 <script type="module">
 import { SB_URL, SB_ANON } from './config.js';
-import { initApp } from './app.js';
+import { initApp } from './js/app.js';
 
 const { createClient } = window.supabase;
 const sb = createClient(SB_URL, SB_ANON, {
