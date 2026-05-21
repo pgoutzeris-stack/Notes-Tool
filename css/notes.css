@@ -186,6 +186,13 @@ input:focus, select:focus { border-color: var(--brand); box-shadow: var(--shadow
 html.in-iframe #screen-login { display: none !important; }
 html.in-iframe .dash-header { padding-top: .5rem; }
 
+#screen-loading {
+  display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;
+  gap: .75rem; color: var(--muted); background: var(--app-bg);
+}
+html.in-iframe #screen-loading { display: flex; }
+html.in-iframe #screen-loading.is-done { display: none; }
+
 @media (max-width: 900px) {
   .dash-layout { grid-template-columns: 1fr; }
   .editor-body { grid-template-columns: 52px 1fr; }

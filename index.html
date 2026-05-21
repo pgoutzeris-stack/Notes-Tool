@@ -44,6 +44,10 @@
 
   <main id="screen-dashboard"></main>
   <div id="screen-editor"></div>
+  <div id="screen-loading" aria-live="polite">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <span>Notes Tool wird geladen…</span>
+  </div>
   <div id="toast-container" aria-live="polite"></div>
 
 <script>
@@ -87,6 +91,7 @@ function resetLoginBtn() {
 }
 
 function showLogin() {
+  document.getElementById('screen-loading')?.classList.add('is-done');
   document.getElementById('screen-dashboard').style.display = 'none';
   document.getElementById('screen-editor').style.display = 'none';
   document.getElementById('screen-login').style.display = 'flex';
@@ -102,6 +107,7 @@ async function onSession(session) {
   }
   await window.RootsUser._loadAndMount(sb);
   document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-loading')?.classList.add('is-done');
   document.body.classList.add('body-dashboard');
   initApp(sb);
 }
