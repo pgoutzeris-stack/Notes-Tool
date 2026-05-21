@@ -1,0 +1,100 @@
+/** Display dimensions (px) tuned for on-screen editing at ~96dpi feel */
+export const PAGE_PRESETS = [
+  {
+    id: "a4-portrait",
+    label: "A4 Hochformat",
+    sub: "210 × 297 mm · Standard für Dokumente",
+    icon: "fa-file-lines",
+    category: "Dokument",
+    width: 794,
+    height: 1123,
+    orientation: "portrait",
+    margins: { top: 72, right: 72, bottom: 72, left: 72 },
+  },
+  {
+    id: "a4-landscape",
+    label: "A4 Querformat",
+    sub: "297 × 210 mm · Breite Layouts",
+    icon: "fa-file-lines",
+    category: "Dokument",
+    width: 1123,
+    height: 794,
+    orientation: "landscape",
+    margins: { top: 64, right: 64, bottom: 64, left: 64 },
+  },
+  {
+    id: "a5-portrait",
+    label: "A5 Notiz",
+    sub: "148 × 210 mm · Kompakt & fokussiert",
+    icon: "fa-note-sticky",
+    category: "Dokument",
+    width: 559,
+    height: 794,
+    orientation: "portrait",
+    margins: { top: 56, right: 56, bottom: 56, left: 56 },
+  },
+  {
+    id: "letter",
+    label: "US Letter",
+    sub: "8.5 × 11 in · International",
+    icon: "fa-envelope-open-text",
+    category: "Dokument",
+    width: 816,
+    height: 1056,
+    orientation: "portrait",
+    margins: { top: 72, right: 72, bottom: 72, left: 72 },
+  },
+  {
+    id: "slide-16-9",
+    label: "Präsentation 16:9",
+    sub: "1920 × 1080 · Widescreen Slides",
+    icon: "fa-display",
+    category: "Präsentation",
+    width: 960,
+    height: 540,
+    orientation: "landscape",
+    margins: { top: 48, right: 48, bottom: 48, left: 48 },
+  },
+  {
+    id: "slide-4-3",
+    label: "Präsentation 4:3",
+    sub: "1024 × 768 · Klassische Folien",
+    icon: "fa-tv",
+    category: "Präsentation",
+    width: 800,
+    height: 600,
+    orientation: "landscape",
+    margins: { top: 40, right: 40, bottom: 40, left: 40 },
+  },
+  {
+    id: "widescreen",
+    label: "Breitbild 16:10",
+    sub: "1280 × 800 · Reports & Briefings",
+    icon: "fa-panorama",
+    category: "Präsentation",
+    width: 960,
+    height: 600,
+    orientation: "landscape",
+    margins: { top: 48, right: 56, bottom: 48, left: 56 },
+  },
+  {
+    id: "fluid",
+    label: "Fließend",
+    sub: "Volle Breite · wie modernes Notion/Word Web",
+    icon: "fa-align-left",
+    category: "Modern",
+    width: 720,
+    height: 0,
+    fluid: true,
+    orientation: "portrait",
+    margins: { top: 48, right: 48, bottom: 48, left: 48 },
+  },
+];
+
+export function getPagePreset(id) {
+  return PAGE_PRESETS.find((p) => p.id === id) || PAGE_PRESETS[0];
+}
+
+export function presetLabel(id) {
+  return getPagePreset(id).label;
+}

@@ -1,12 +1,13 @@
 import { escapeHtml, formatDate } from "./utils.js";
 import { appHeaderHtml, updateAppHeader } from "./header.js";
+import { presetLabel } from "./page-presets.js";
 
 export function renderDashboard(root, state, handlers) {
   const { documents, folders, filter, loadError } = state;
   const filtered = filterDocuments(documents, filter);
 
   root.innerHTML = `
-    ${appHeaderHtml("Organisieren, visualisieren und exportieren")}
+    ${appHeaderHtml("Moderne Dokumente — schreiben, strukturieren, exportieren")}
     <div class="dash-body">
       <aside class="dash-sidebar">
         <nav class="dash-nav">
@@ -38,7 +39,7 @@ export function renderDashboard(root, state, handlers) {
       <main class="dash-main">
         ${loadError ? `<div class="notes-error-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(loadError)}</div>` : ""}
         <div class="dash-toolbar">
-          <h1 class="dash-title">Deine Notizen</h1>
+          <h1 class="dash-title">Deine Dokumente</h1>
           <div class="dash-search-wrap">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="search" class="dash-search" id="dash-search" placeholder="Notizen durchsuchen…" value="${escapeHtml(filter.q || "")}">
@@ -52,15 +53,15 @@ export function renderDashboard(root, state, handlers) {
             <button type="button" class="view-btn ${filter.view === "grid" ? "is-active" : ""}" data-view="grid" title="Raster"><i class="fa-solid fa-grip"></i></button>
             <button type="button" class="view-btn ${filter.view === "list" ? "is-active" : ""}" data-view="list" title="Liste"><i class="fa-solid fa-list"></i></button>
           </div>
-          <button type="button" class="btn-primary" id="btn-new-note"><i class="fa-solid fa-plus"></i> Neue Notiz</button>
+          <button type="button" class="btn-primary" id="btn-new-note"><i class="fa-solid fa-plus"></i> Neues Dokument</button>
         </div>
         <div class="dash-content">
           <div class="notes-grid ${filter.view === "list" ? "notes-grid--list" : ""}" id="notes-grid">
             ${filtered.length ? filtered.map((d) => noteCard(d, folders)).join("") : `
               <div class="notes-empty">
                 <i class="fa-solid fa-note-sticky"></i>
-                <strong>Noch keine Notizen</strong>
-                <span>Erstelle deine erste Notiz mit Formen, Tabellen und Verbindern.</span>
+                <strong>Noch keine Dokumente</strong>
+                <span>Erstelle dein erstes Dokument und wähle das passende Seitenformat.</span>
               </div>`}
           </div>
         </div>
@@ -99,10 +100,17 @@ export function renderDashboard(root, state, handlers) {
 
 function noteCard(doc, folders) {
   const folder = folders.find((f) => f.id === doc.folder_id);
+  let pagePreset = "a4-portrait";
+  try {
+    const c = typeof doc.content === "string" ? JSON.parse(doc.content) : doc.content;
+    if (c?.page?.preset) pagePreset = c.page.preset;
+  } catch (_) {}
+  const formatName = presetLabel(pagePreset).split(" ")[0];
   return `
     <article class="note-card" data-open="${doc.id}">
-      <div class="note-card-preview">
-        ${doc.thumbnail ? `<img src="${doc.thumbnail}" alt="">` : `<div class="note-card-placeholder"><i class="fa-solid fa-shapes"></i></div>`}
+      <div class="note-card-preview note-card-preview--doc">
+        <div class="doc-thumb-page"></div>
+        <span class="doc-thumb-format">${escapeHtml(formatName)}</span>
       </div>
       <div class="note-card-body">
         <div class="note-card-top">

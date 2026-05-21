@@ -1,73 +1,56 @@
+import { presetLabel } from "./page-presets.js";
+
 export async function exportJson(doc) {
   const blob = new Blob([JSON.stringify(doc.content, null, 2)], { type: "application/json" });
   downloadBlob(blob, `${safeName(doc.title)}.json`);
 }
 
-export async function exportHtml(doc, canvasEl) {
-  const clone = canvasEl.cloneNode(true);
-  clone.querySelectorAll(".obj-handle, .selection-box, .editor-ui").forEach((n) => n.remove());
+export async function exportHtml(doc) {
+  const page = doc.content?.page || {};
   const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${escape(doc.title)}</title>
-<style>body{margin:0;font-family:'Circular Std',system-ui,sans-serif;background:#f4f7fb;padding:2rem}
-.canvas-wrap{position:relative;width:100%;min-height:600px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(15,23,42,.08)}
-</style></head><body><h1>${escape(doc.title)}</h1><div class="canvas-wrap">${clone.innerHTML}</div></body></html>`;
+<style>
+  body{margin:0;font-family:'Circular Std',system-ui,sans-serif;background:#eef2f7;padding:2rem;color:#0f172a}
+  .page{max-width:${page.width || 794}px;margin:0 auto;background:#fff;box-shadow:0 12px 40px rgba(15,23,42,.12);border-radius:4px;padding:${page.margins?.top || 72}px ${page.margins?.right || 72}px}
+  .doc-callout{background:#eff6ff;border-left:4px solid #206efb;padding:1rem 1.25rem;border-radius:8px;margin:1rem 0}
+  .doc-divider{border:none;border-top:1px solid #e2e8f0;margin:1.5rem 0}
+  .doc-table{width:100%;border-collapse:collapse;margin:1rem 0}
+  .doc-table td{border:1px solid #e2e8f0;padding:8px}
+</style></head><body><h1>${escape(doc.title)}</h1><div class="page">${doc.content?.html || ""}</div></body></html>`;
   downloadBlob(new Blob([html], { type: "text/html" }), `${safeName(doc.title)}.html`);
 }
 
 export async function exportMarkdown(doc) {
-  const lines = [`# ${doc.title}`, ""];
-  for (const obj of doc.content?.objects || []) {
-    if (obj.type === "text" || obj.type === "sticky") {
-      lines.push(stripHtml(obj.content || ""), "");
-    } else if (obj.type === "table") {
-      lines.push(tableToMd(obj), "");
-    } else {
-      lines.push(`- [${obj.type}] ${obj.label || ""}`.trim(), "");
-    }
-  }
+  const lines = [`# ${doc.title}`, "", stripHtml(doc.content?.html || ""), ""];
   downloadBlob(new Blob([lines.join("\n")], { type: "text/markdown" }), `${safeName(doc.title)}.md`);
 }
 
-export async function exportPng(canvasEl, title) {
+export async function exportPng(pageEl, title) {
   const html2canvas = window.html2canvas;
   if (!html2canvas) throw new Error("html2canvas nicht geladen");
-  const target = canvasEl.querySelector(".canvas-world") || canvasEl;
+  const target = pageEl?.querySelector?.(".doc-page") || pageEl;
   const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
   canvas.toBlob((blob) => downloadBlob(blob, `${safeName(title)}.png`));
 }
 
-export async function exportPdf(canvasEl, title) {
+export async function exportPdf(pageEl, title) {
   const html2pdf = window.html2pdf;
   if (!html2pdf) throw new Error("html2pdf nicht geladen");
+  const page = pageEl?.querySelector?.(".doc-page") || pageEl;
+  const clone = page.cloneNode(true);
+  clone.style.transform = "none";
+  clone.style.boxShadow = "none";
   const wrap = document.createElement("div");
-  wrap.style.padding = "24px";
+  wrap.style.padding = "0";
   wrap.style.background = "#fff";
-  wrap.innerHTML = `<h1 style="font-family:'Circular Std',sans-serif;color:#0f172a">${escape(title)}</h1>`;
-  const clone = (canvasEl.querySelector(".canvas-world") || canvasEl).cloneNode(true);
-  clone.querySelectorAll(".obj-handle, .selection-box").forEach((n) => n.remove());
   wrap.appendChild(clone);
+  const preset = pageEl?.dataset?.preset || "a4";
   await html2pdf().set({
-    margin: 10,
+    margin: 0,
     filename: `${safeName(title)}.pdf`,
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   }).from(wrap).save();
-}
-
-function tableToMd(obj) {
-  const rows = obj.rows || 2;
-  const cols = obj.cols || 2;
-  const cells = obj.cells || {};
-  const lines = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) {
-      row.push(stripHtml(cells[`${r}-${c}`] || ""));
-    }
-    lines.push(`| ${row.join(" | ")} |`);
-    if (r === 0) lines.push(`| ${row.map(() => "---").join(" | ")} |`);
-  }
-  return lines.join("\n");
 }
 
 function stripHtml(html) {
@@ -77,7 +60,7 @@ function stripHtml(html) {
 }
 
 function safeName(s) {
-  return (s || "notiz").replace(/[^\w\-äöüÄÖÜß ]+/g, "").trim() || "notiz";
+  return (s || "dokument").replace(/[^\w\-äöüÄÖÜß ]+/g, "").trim() || "dokument";
 }
 
 function escape(s) {

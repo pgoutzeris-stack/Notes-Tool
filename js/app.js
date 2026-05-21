@@ -5,6 +5,7 @@ import {
 import { renderDashboard, extractClusters } from "./dashboard.js";
 import { NotesEditor } from "./editor.js";
 import { updateAppHeader } from "./header.js";
+import { showPageSetup } from "./page-setup.js";
 import { exportJson, exportHtml, exportMarkdown, exportPng, exportPdf } from "./export.js";
 import { debounce } from "./utils.js";
 
@@ -120,6 +121,9 @@ async function createNewNote() {
     return;
   }
 
+  const pagePreset = await showPageSetup();
+  if (!pagePreset) return;
+
   creatingNote = true;
   const btn = document.querySelector("#btn-new-note");
   if (btn) btn.disabled = true;
@@ -136,10 +140,11 @@ async function createNewNote() {
       ? state.filter.folderId
       : state.folders[0]?.id;
     const doc = await createDocument(sb, userId, {
-      title: "Neue Notiz",
+      title: "Neues Dokument",
       folderId,
       tags: [],
       clusterLabel: state.filter.cluster || null,
+      pagePreset,
     });
     state.documents.unshift(doc);
     state.currentDoc = doc;
@@ -154,7 +159,7 @@ async function createNewNote() {
   } catch (e) {
     console.error("Notes createNewNote", e);
     showDashboard();
-    toast(e.message || "Notiz konnte nicht erstellt werden", "error");
+    toast(e.message || "Dokument konnte nicht erstellt werden", "error");
   } finally {
     creatingNote = false;
     if (btn) btn.disabled = false;
@@ -231,7 +236,7 @@ async function exportCurrent(type) {
   try {
     const canvas = editor.getCanvasEl();
     if (type === "json") await exportJson(doc);
-    else if (type === "html") await exportHtml(doc, canvas);
+    else if (type === "html") await exportHtml(doc);
     else if (type === "md") await exportMarkdown(doc);
     else if (type === "png") await exportPng(canvas, doc.title);
     else if (type === "pdf") await exportPdf(canvas, doc.title);

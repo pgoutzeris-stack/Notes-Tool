@@ -37,7 +37,7 @@ export async function deleteFolder(sb, id) {
 
 export async function listDocuments(sb, userId) {
   const { data, error } = await notes(sb).from("documents")
-    .select("id,title,folder_id,tags,cluster_label,is_favorite,thumbnail,created_at,updated_at")
+    .select("id,title,folder_id,tags,cluster_label,is_favorite,thumbnail,content,created_at,updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -53,15 +53,15 @@ export async function getDocument(sb, id) {
   return data;
 }
 
-export async function createDocument(sb, userId, { title, folderId, tags = [], clusterLabel = null } = {}) {
+export async function createDocument(sb, userId, { title, folderId, tags = [], clusterLabel = null, pagePreset = "a4-portrait" } = {}) {
   const { data, error } = await notes(sb).from("documents")
     .insert({
       user_id: userId,
-      title: title || "Unbenannte Notiz",
+      title: title || "Unbenanntes Dokument",
       folder_id: folderId || null,
       tags,
       cluster_label: clusterLabel,
-      content: defaultDocumentContent(),
+      content: defaultDocumentContent(pagePreset),
     })
     .select("*")
     .single();
