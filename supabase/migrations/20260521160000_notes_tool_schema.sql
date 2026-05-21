@@ -1,0 +1,2 @@
+-- Applied on Supabase project csmguwcvzreefluhahyu
+-- Schema: notes.folders, notes.documents (RLS per auth.uid())

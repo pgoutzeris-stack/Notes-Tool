@@ -9,6 +9,7 @@ import { debounce } from "./utils.js";
 
 let sb;
 let userId;
+let booted = false;
 let state = {
   documents: [],
   folders: [],
@@ -21,9 +22,11 @@ let editor;
 const saveDebounced = debounce(saveCurrentDoc, 1200);
 
 export function initApp(supabase) {
+  if (booted) return;
   sb = supabase;
   userId = window.RootsUser?._uid;
   if (!userId) return;
+  booted = true;
 
   editor = new NotesEditor(document.getElementById("screen-editor"), {
     onChange: (doc, immediate) => {
