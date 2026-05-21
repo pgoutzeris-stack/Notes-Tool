@@ -132,7 +132,7 @@ async function onSession(session) {
 
 window.addEventListener('message', (e) => {
   if (e.origin !== 'https://pgoutzeris-stack.github.io') return;
-  if (e.data?.type === 'roots-notes-refresh') {
+  if (e.data?.type === 'roots-notes-refresh' || e.data?.type === 'roots-auth-sync') {
     void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
   }
 });
