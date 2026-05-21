@@ -34,6 +34,10 @@ export function initApp(supabase) {
     return;
   }
   if (booted) {
+    if (document.body.classList.contains("body-editor") && state.currentDoc?.id) {
+      void refreshDocumentLists();
+      return;
+    }
     void loadDashboard();
     return;
   }
@@ -54,6 +58,18 @@ export function initApp(supabase) {
   loadDashboard();
 }
 
+async function refreshDocumentLists() {
+  try {
+    state.folders = await listFolders(sb, userId);
+    state.documents = await listDocuments(sb, userId);
+    state.clusters = extractClusters(state.documents);
+    state.loadError = null;
+  } catch (e) {
+    console.error("Notes refreshDocumentLists", e);
+    toast(e.message || "Dokumente konnten nicht aktualisiert werden", "error");
+  }
+}
+
 async function loadDashboard() {
   showDashboard();
   paintDashboard();
@@ -66,7 +82,7 @@ async function loadDashboard() {
     paintDashboard();
   } catch (e) {
     console.error("Notes loadDashboard", e);
-    state.loadError = e.message || "Notizen konnten nicht geladen werden";
+    state.loadError = e.message || "Dokumente konnten nicht geladen werden";
     paintDashboard();
     toast(state.loadError, "error");
   }
@@ -128,9 +144,6 @@ async function createNewNote() {
   const btn = document.querySelector("#btn-new-note");
   if (btn) btn.disabled = true;
 
-  showEditor();
-  setSaveStatus("Erstelle…");
-
   try {
     if (!state.folders.length) {
       await ensureDefaultFolder(sb, userId);
@@ -149,6 +162,7 @@ async function createNewNote() {
     state.documents.unshift(doc);
     state.currentDoc = doc;
 
+    showEditor();
     const tagsEl = editor.root.querySelector("#insp-tags");
     const clusterEl = editor.root.querySelector("#insp-cluster");
     if (tagsEl) tagsEl.value = (doc.tags || []).join(", ");
@@ -189,7 +203,7 @@ async function openNote(id) {
     setSaveStatus("Gespeichert");
   } catch (e) {
     showDashboard();
-    toast("Notiz konnte nicht geöffnet werden", "error");
+    toast("Dokument konnte nicht geöffnet werden", "error");
   }
 }
 
@@ -223,11 +237,11 @@ async function toggleFavorite(id) {
 }
 
 async function removeNote(id) {
-  if (!confirm("Notiz wirklich löschen?")) return;
+  if (!confirm("Dokument wirklich löschen?")) return;
   await deleteDocument(sb, id);
   state.documents = state.documents.filter((d) => d.id !== id);
   paintDashboard();
-  toast("Notiz gelöscht", "info");
+  toast("Dokument gelöscht", "info");
 }
 
 async function exportCurrent(type) {
@@ -239,7 +253,7 @@ async function exportCurrent(type) {
     else if (type === "html") await exportHtml(doc);
     else if (type === "md") await exportMarkdown(doc);
     else if (type === "png") await exportPng(canvas, doc.title);
-    else if (type === "pdf") await exportPdf(canvas, doc.title);
+    else if (type === "pdf") await exportPdf(canvas, doc);
     toast("Export abgeschlossen", "success");
   } catch (e) {
     toast(e.message || "Export fehlgeschlagen", "error");
@@ -275,6 +289,10 @@ window.notesSoftRefresh = async () => {
   userId = window.RootsUser?._uid || userId;
   if (booted && userId) {
     document.getElementById("screen-auth-hint")?.setAttribute("hidden", "");
+    if (document.body.classList.contains("body-editor") && state.currentDoc?.id) {
+      await refreshDocumentLists();
+      return;
+    }
     await loadDashboard();
     return;
   }

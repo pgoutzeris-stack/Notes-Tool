@@ -87,5 +87,5 @@ export async function deleteDocument(sb, id) {
 export async function ensureDefaultFolder(sb, userId) {
   const folders = await listFolders(sb, userId);
   if (folders.length) return folders;
-  return [await createFolder(sb, userId, "Meine Notizen")];
+  return [await createFolder(sb, userId, "Meine Dokumente")];
 }

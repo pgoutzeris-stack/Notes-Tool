@@ -1,5 +1,4 @@
-import { debounce } from "./utils.js";
-import { migrateDocumentContent } from "./utils.js";
+import { debounce, migrateDocumentContent } from "./utils.js";
 import { appHeaderHtml, updateAppHeader } from "./header.js";
 import { getPagePreset, PAGE_PRESETS, presetLabel } from "./page-presets.js";
 
@@ -169,6 +168,7 @@ export class NotesEditor {
     this.root.querySelectorAll("[data-cmd]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
+        this.focusEditor();
         const cmd = btn.dataset.cmd;
         if (cmd === "undo") this.undo();
         else if (cmd === "redo") this.redo();
@@ -178,22 +178,26 @@ export class NotesEditor {
     });
 
     this.root.querySelector("#ribbon-style")?.addEventListener("change", (e) => {
+      this.focusEditor();
       formatBlock(e.target.value);
       this.syncFromEditor();
     });
 
     this.root.querySelector("#ribbon-text-color")?.addEventListener("input", (e) => {
+      this.focusEditor();
       document.execCommand("foreColor", false, e.target.value);
       this.syncFromEditor();
     });
 
     this.root.querySelector("#ribbon-highlight")?.addEventListener("input", (e) => {
-      document.execCommand("hiliteColor", false, e.target.value);
+      this.focusEditor();
+      applyHighlight(e.target.value);
       this.syncFromEditor();
     });
 
     this.root.querySelectorAll("[data-insert]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        this.focusEditor();
         const t = btn.dataset.insert;
         if (t === "link") insertLink();
         else if (t === "table") insertTable(3, 3);
@@ -229,14 +233,28 @@ export class NotesEditor {
 
     this.root.querySelectorAll("[data-zoom]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        if (!this.doc?.content) return;
         const delta = btn.dataset.zoom === "+" ? 10 : -10;
-        this.setZoom((this.content.settings?.zoom || 100) + delta);
+        this.setZoom((this.doc.content.settings?.zoom || 100) + delta);
       });
+    });
+
+    this.contentEl.addEventListener("mousedown", (e) => {
+      if (e.target.matches(".doc-checklist input[type=checkbox]")) {
+        e.preventDefault();
+        e.target.checked = !e.target.checked;
+        this.syncFromEditor();
+      }
     });
 
     document.addEventListener("click", (e) => {
       if (!this.slashMenu?.contains(e.target)) this.hideSlashMenu();
     });
+  }
+
+  focusEditor() {
+    if (!this.contentEl) return;
+    this.contentEl.focus();
   }
 
   load(doc) {
@@ -253,6 +271,8 @@ export class NotesEditor {
     this.root.querySelector("#insp-cluster").value = this.doc.cluster_label || "";
 
     this.layoutPreset.value = this.doc.content.page.preset || "a4-portrait";
+    const marginEl = this.root.querySelector("#layout-margin");
+    if (marginEl) marginEl.value = this.doc.content.page.marginMode || "normal";
     this.applyPageStyles();
     this.setZoom(this.doc.content.settings.zoom || 100, false);
     this.setFocusMode(!!this.doc.content.settings.focusMode, false);
@@ -289,7 +309,10 @@ export class NotesEditor {
     page.height = preset.height;
     page.fluid = !!preset.fluid;
     page.orientation = preset.orientation;
-    if (!page.margins) page.margins = { ...preset.margins };
+    page.marginMode = "normal";
+    page.margins = { ...preset.margins };
+    const marginEl = this.root.querySelector("#layout-margin");
+    if (marginEl) marginEl.value = "normal";
     this.applyPageStyles();
     this.emitChange(false);
   }
@@ -298,6 +321,7 @@ export class NotesEditor {
     const page = this.doc.content.page;
     const base = getPagePreset(page.preset).margins;
     const scale = mode === "narrow" ? 0.6 : mode === "wide" ? 1.4 : 1;
+    page.marginMode = mode;
     page.margins = {
       top: Math.round(base.top * scale),
       right: Math.round(base.right * scale),
@@ -309,19 +333,23 @@ export class NotesEditor {
   }
 
   setZoom(value, save = true) {
+    if (!this.doc?.content) return;
     const z = Math.max(50, Math.min(150, value));
     this.doc.content.settings.zoom = z;
-    this.pageWrap.style.transform = `scale(${z / 100})`;
-    this.pageWrap.style.transformOrigin = "top center";
+    this.pageWrap.style.zoom = String(z / 100);
+    this.pageWrap.style.transform = "";
     this.root.querySelector("#status-zoom").textContent = `${z}%`;
     if (save) this.emitChange(false);
   }
 
   toggleFocus() {
+    if (!this.doc?.content?.settings) return;
     this.setFocusMode(!this.doc.content.settings.focusMode);
   }
 
   setFocusMode(on, save = true) {
+    if (!this.doc?.content) return;
+    if (!this.doc.content.settings) this.doc.content.settings = { zoom: 100, focusMode: false };
     this.doc.content.settings.focusMode = on;
     this.root.querySelector(".doc-editor")?.classList.toggle("is-focus", on);
     if (save) this.emitChange(false);
@@ -353,9 +381,9 @@ export class NotesEditor {
     const text = this.contentEl.innerText || "";
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
-    const readMin = Math.max(1, Math.ceil(words / 200));
+    const readMin = words ? Math.max(1, Math.ceil(words / 200)) : 0;
     this.root.querySelector("#meta-words").textContent = String(words);
-    this.root.querySelector("#meta-read").textContent = `${readMin} min`;
+    this.root.querySelector("#meta-read").textContent = readMin ? `${readMin} min` : "< 1 min";
     this.root.querySelector("#status-words").textContent = `${words} Wörter`;
     this.root.querySelector("#status-chars").textContent = `${chars} Zeichen`;
   }
@@ -388,6 +416,7 @@ export class NotesEditor {
     this.slashMenu.style.top = `${rect.bottom + 6}px`;
     this.slashMenu.querySelectorAll(".slash-item").forEach((btn) => {
       btn.addEventListener("click", () => {
+        this.focusEditor();
         const cmd = SLASH_COMMANDS.find((c) => c.cmd === btn.dataset.slash);
         cmd?.action();
         this.hideSlashMenu();
@@ -402,6 +431,7 @@ export class NotesEditor {
   }
 
   pushHistory(reset = false) {
+    if (!this.doc?.content) return;
     const snap = this.doc.content.html;
     if (reset) {
       this.history = [snap];
@@ -411,6 +441,7 @@ export class NotesEditor {
   }
 
   commitHistory() {
+    if (!this.doc?.content) return;
     const snap = this.doc.content.html;
     if (this.history[this.historyIndex] === snap) return;
     this.history = this.history.slice(0, this.historyIndex + 1);
@@ -486,4 +517,10 @@ function insertTable(rows, cols) {
 function insertLink() {
   const url = prompt("Link-URL:");
   if (url) document.execCommand("createLink", false, url);
+}
+
+function applyHighlight(color) {
+  if (!document.execCommand("hiliteColor", false, color)) {
+    document.execCommand("backColor", false, color);
+  }
 }

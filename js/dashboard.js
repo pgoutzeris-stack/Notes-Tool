@@ -13,7 +13,7 @@ export function renderDashboard(root, state, handlers) {
         <nav class="dash-nav">
           <div class="dash-nav-section">Ordner</div>
           <button type="button" class="dash-nav-item ${filter.folderId === "all" ? "active" : ""}" data-folder="all">
-            <i class="fa-solid fa-layer-group"></i> Alle Notizen
+            <i class="fa-solid fa-layer-group"></i> Alle Dokumente
           </button>
           <button type="button" class="dash-nav-item ${filter.folderId === "fav" ? "active" : ""}" data-folder="fav">
             <i class="fa-solid fa-star"></i> Favoriten
@@ -42,7 +42,7 @@ export function renderDashboard(root, state, handlers) {
           <h1 class="dash-title">Deine Dokumente</h1>
           <div class="dash-search-wrap">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="search" class="dash-search" id="dash-search" placeholder="Notizen durchsuchen…" value="${escapeHtml(filter.q || "")}">
+            <input type="search" class="dash-search" id="dash-search" placeholder="Dokumente durchsuchen…" value="${escapeHtml(filter.q || "")}">
           </div>
           <select class="dash-select" id="dash-sort">
             <option value="updated" ${filter.sort === "updated" ? "selected" : ""}>Zuletzt bearbeitet</option>
@@ -143,7 +143,8 @@ function filterDocuments(docs, filter) {
     const q = filter.q.toLowerCase();
     list = list.filter((d) => (d.title || "").toLowerCase().includes(q)
       || (d.tags || []).some((t) => t.toLowerCase().includes(q))
-      || (d.cluster_label || "").toLowerCase().includes(q));
+      || (d.cluster_label || "").toLowerCase().includes(q)
+      || documentText(d).includes(q));
   }
   if (filter.sort === "title") list.sort((a, b) => (a.title || "").localeCompare(b.title || "", "de"));
   else if (filter.sort === "created") list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -155,4 +156,14 @@ export function extractClusters(documents) {
   const set = new Set();
   documents.forEach((d) => { if (d.cluster_label) set.add(d.cluster_label); });
   return [...set].sort((a, b) => a.localeCompare(b, "de"));
+}
+
+function documentText(doc) {
+  try {
+    const c = typeof doc.content === "string" ? JSON.parse(doc.content) : doc.content;
+    const html = c?.html || "";
+    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").toLowerCase();
+  } catch (_) {
+    return "";
+  }
 }

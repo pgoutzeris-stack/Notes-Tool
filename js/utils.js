@@ -30,6 +30,7 @@ export function defaultDocumentContent(presetId = "a4-portrait", html) {
       fluid: !!preset.fluid,
       orientation: preset.orientation,
       margins: { ...preset.margins },
+      marginMode: "normal",
     },
     html: html || "<p>Beginne zu schreiben…</p>",
     settings: { zoom: 100, focusMode: false },
@@ -38,7 +39,13 @@ export function defaultDocumentContent(presetId = "a4-portrait", html) {
 
 export function migrateDocumentContent(content) {
   if (!content || typeof content !== "object") return defaultDocumentContent();
-  if (content.version === 2 && content.page) return content;
+  if (content.version === 2 && content.page) {
+    if (!content.html) content.html = "<p>Beginne zu schreiben…</p>";
+    if (!content.settings) content.settings = { zoom: 100, focusMode: false };
+    if (!content.page.margins) content.page.margins = { ...getPagePreset(content.page.preset).margins };
+    if (!content.page.marginMode) content.page.marginMode = "normal";
+    return content;
+  }
 
   const parts = [];
   for (const obj of content.objects || []) {
