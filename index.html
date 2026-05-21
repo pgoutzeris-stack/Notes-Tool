@@ -46,12 +46,13 @@
   <div id="screen-editor"></div>
   <div id="screen-loading" aria-live="polite">
     <i class="fa-solid fa-circle-notch fa-spin"></i>
-    <span>Notes Tool wird geladen…</span>
+    <span id="loading-label">Notes Tool wird geladen…</span>
   </div>
   <div id="screen-auth-hint" class="iframe-auth-hint" hidden>
     <i class="fa-solid fa-lock"></i>
     <strong>Anmeldung erforderlich</strong>
     <p>Bitte melde dich im ROOTS Intranet an und öffne das Notes Tool erneut.</p>
+    <button type="button" class="btn-primary" id="btn-retry-auth"><i class="fa-solid fa-rotate-right"></i> Erneut versuchen</button>
   </div>
   <div id="toast-container" aria-live="polite"></div>
 
@@ -62,15 +63,18 @@ window.RootsUser = window.RootsUser || {
     if (!n) return '?';
     return n.trim().split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
   },
-  async _loadAndMount(sb) {
+  async _loadAndMount(sb, session) {
     this._sb = sb;
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
+    if (!session?.user?.id) return;
     this._uid = session.user.id;
-    const { data } = await sb.schema('users').from('profiles')
-      .select('id,email,full_name,position,avatar_url,app_role')
-      .eq('id', this._uid).single();
-    this._p = data || { id: this._uid, email: session.user.email, app_role: 'reader' };
+    try {
+      const { data } = await sb.schema('users').from('profiles')
+        .select('id,email,full_name,position,avatar_url,app_role')
+        .eq('id', this._uid).single();
+      this._p = data || { id: this._uid, email: session.user.email, app_role: 'reader' };
+    } catch (_) {
+      this._p = { id: this._uid, email: session.user.email, app_role: 'reader' };
+    }
   },
   isAdmin() { return String(this._p?.app_role || '').trim() === 'admin'; },
 };
@@ -84,11 +88,20 @@ try {
 
 <script type="module">
 import { SB_URL, SB_ANON } from './config.js';
-import { initApp } from './app.js';
 
+const ORIGIN = 'https://pgoutzeris-stack.github.io';
 const { createClient } = window.supabase;
-const sb = createClient(SB_URL, SB_ANON);
+const sb = createClient(SB_URL, SB_ANON, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+});
+
+let initAppFn = null;
+let booting = false;
 const LOGIN_HTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Anmelden';
+
+function hideLoading() {
+  document.getElementById('screen-loading')?.classList.add('is-done');
+}
 
 function resetLoginBtn() {
   const btn = document.getElementById('btn-login');
@@ -96,7 +109,7 @@ function resetLoginBtn() {
 }
 
 function showLogin() {
-  document.getElementById('screen-loading')?.classList.add('is-done');
+  hideLoading();
   document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
   document.getElementById('screen-dashboard').style.display = 'none';
   document.getElementById('screen-editor').style.display = 'none';
@@ -109,38 +122,96 @@ function showLogin() {
   resetLoginBtn();
 }
 
+function requestParentAuth() {
+  if (!document.documentElement.classList.contains('in-iframe')) return;
+  try { window.parent.postMessage({ type: 'roots-notes-request-auth' }, ORIGIN); } catch (_) {}
+}
+
 async function onSession(session) {
+  if (booting) return;
+  booting = true;
   try {
+    if (!initAppFn) {
+      const mod = await import('./app.js');
+      initAppFn = mod.initApp;
+    }
     if (!session) {
       showLogin();
       if (window.RootsUser) { window.RootsUser._uid = null; window.RootsUser._p = null; }
+      requestParentAuth();
       return;
     }
-    await window.RootsUser._loadAndMount(sb);
+    await window.RootsUser._loadAndMount(sb, session);
     document.getElementById('screen-login').style.display = 'none';
     document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
     document.body.classList.add('body-dashboard');
-    initApp(sb);
+    initAppFn(sb);
   } catch (e) {
     console.error('Notes onSession', e);
+    hideLoading();
+    document.getElementById('loading-label').textContent = 'Start fehlgeschlagen';
     window.notesToast?.(e.message || 'Start fehlgeschlagen', 'error');
   } finally {
-    document.getElementById('screen-loading')?.classList.add('is-done');
+    hideLoading();
+    booting = false;
   }
 }
 
+async function applyAuthPayload(payload) {
+  if (!payload?.access_token || !payload?.refresh_token) {
+    await onSession(null);
+    return;
+  }
+  const { data, error } = await sb.auth.setSession({
+    access_token: payload.access_token,
+    refresh_token: payload.refresh_token,
+  });
+  if (error) {
+    console.error('Notes setSession', error);
+    await onSession(null);
+    return;
+  }
+  await onSession(data.session);
+}
+
 window.addEventListener('message', (e) => {
-  if (e.origin !== 'https://pgoutzeris-stack.github.io') return;
-  if (e.data?.type === 'roots-notes-refresh') {
-    void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+  if (e.origin !== ORIGIN) return;
+  if (e.data?.type === 'roots-notes-refresh' || e.data?.type === 'roots-auth-session') {
+    if (e.data.session) void applyAuthPayload(e.data.session);
+    else void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
   }
 });
 
-sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+document.getElementById('btn-retry-auth')?.addEventListener('click', () => {
+  document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
+  document.getElementById('screen-loading')?.classList.remove('is-done');
+  document.getElementById('loading-label').textContent = 'Notes Tool wird geladen…';
+  requestParentAuth();
+  setTimeout(() => {
+    void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+  }, 400);
+});
+
+try {
+  const { data: { session } } = await sb.auth.getSession();
+  await onSession(session);
+  if (!session) requestParentAuth();
+} catch (e) {
+  console.error('Notes boot', e);
+  hideLoading();
+  requestParentAuth();
+}
+
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') { showLogin(); return; }
-  if (session) onSession(session);
+  if (session && event !== 'INITIAL_SESSION') void onSession(session);
 });
+
+setTimeout(() => {
+  if (!document.getElementById('screen-loading')?.classList.contains('is-done')) {
+    requestParentAuth();
+  }
+}, 1200);
 
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
