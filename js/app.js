@@ -95,16 +95,28 @@ function showEditor() {
 }
 
 async function createNewNote() {
-  const folderId = state.filter.folderId !== "all" && state.filter.folderId !== "fav"
-    ? state.filter.folderId
-    : state.folders[0]?.id;
-  const doc = await createDocument(sb, userId, {
-    title: "Neue Notiz",
-    folderId,
-    clusterLabel: state.filter.cluster,
-  });
-  state.documents.unshift(doc);
-  await openNote(doc.id);
+  userId = window.RootsUser?._uid || userId;
+  if (!userId) {
+    toast("Bitte warte, bis das Notes Tool vollständig geladen ist.", "error");
+    return;
+  }
+  try {
+    const folderId = state.filter.folderId !== "all" && state.filter.folderId !== "fav"
+      ? state.filter.folderId
+      : state.folders[0]?.id;
+    const doc = await createDocument(sb, userId, {
+      title: "Neue Notiz",
+      folderId,
+      clusterLabel: state.filter.cluster,
+    });
+    state.documents.unshift(doc);
+    document.getElementById("screen-auth-hint")?.setAttribute("hidden", "");
+    document.getElementById("screen-loading")?.classList.add("is-done");
+    await openNote(doc.id);
+  } catch (e) {
+    console.error("Notes createNewNote", e);
+    toast(e.message || "Notiz konnte nicht erstellt werden", "error");
+  }
 }
 
 async function createNewFolder() {
@@ -202,9 +214,20 @@ function toast(msg, kind = "info") {
 window.notesToast = toast;
 
 function showAuthHint() {
+  if (booted) return;
   const el = document.getElementById("screen-auth-hint");
   if (el) el.hidden = false;
   document.getElementById("screen-loading")?.classList.add("is-done");
   document.getElementById("screen-dashboard").style.display = "none";
   document.getElementById("screen-editor").style.display = "none";
 }
+
+window.notesSoftRefresh = async () => {
+  userId = window.RootsUser?._uid || userId;
+  if (booted && userId) {
+    document.getElementById("screen-auth-hint")?.setAttribute("hidden", "");
+    await loadDashboard();
+    return;
+  }
+  void window.RootsUserBridge?.syncAuthFromParentStorage?.();
+};

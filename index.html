@@ -62,15 +62,24 @@ window.RootsUser = window.RootsUser || {
     if (!n) return '?';
     return n.trim().split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
   },
-  async _loadAndMount(sb) {
+  async _loadAndMount(sb, sessionHint) {
     this._sb = sb;
-    const { data: { session } } = await sb.auth.getSession();
+    let session = sessionHint || null;
+    if (!session) {
+      const { data: { session: stored } } = await sb.auth.getSession();
+      session = stored;
+    }
     if (!session) return;
     this._uid = session.user.id;
     const { data } = await sb.schema('users').from('profiles')
       .select('id,email,full_name,position,avatar_url,app_role')
       .eq('id', this._uid).maybeSingle();
-    this._p = data || { id: this._uid, email: session.user.email, app_role: 'reader' };
+    this._p = data || {
+      id: this._uid,
+      email: session.user.email,
+      full_name: session.user.user_metadata?.full_name || session.user.email,
+      app_role: 'reader',
+    };
   },
   isAdmin() { return String(this._p?.app_role || '').trim() === 'admin'; },
 };
@@ -118,11 +127,12 @@ function showLogin() {
 async function onSession(session) {
   try {
     if (!session) {
+      if (notesInIframe && document.body.classList.contains('body-dashboard')) return;
       showLogin();
       if (window.RootsUser) { window.RootsUser._uid = null; window.RootsUser._p = null; }
       return;
     }
-    await window.RootsUser._loadAndMount(sb);
+    await window.RootsUser._loadAndMount(sb, session);
     document.getElementById('screen-login').style.display = 'none';
     document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
     document.body.classList.add('body-dashboard');
@@ -138,7 +148,9 @@ async function onSession(session) {
 window.addEventListener('message', (e) => {
   if (e.origin !== 'https://pgoutzeris-stack.github.io') return;
   if (e.data?.type === 'roots-notes-refresh') {
-    void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+    if (window.notesSoftRefresh) void window.notesSoftRefresh();
+    else void window.RootsUserBridge?.syncAuthFromParentStorage?.();
+    return;
   }
   if (e.data?.type === 'roots-profile-updated' && e.data.profile && window.RootsUser) {
     window.RootsUser._p = { ...(window.RootsUser._p || {}), ...e.data.profile };

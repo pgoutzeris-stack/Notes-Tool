@@ -190,8 +190,12 @@ html.in-iframe .dash-header { padding-top: .5rem; }
   display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;
   gap: .75rem; color: var(--muted); background: var(--app-bg);
 }
-html.in-iframe #screen-loading { display: flex; }
-html.in-iframe #screen-loading.is-done { display: none; }
+html.in-iframe #screen-loading { display: flex; z-index: 1; }
+html.in-iframe #screen-loading.is-done { display: none !important; }
+html.in-iframe .iframe-auth-hint:not([hidden]) { z-index: 2; }
+html.in-iframe body.body-dashboard #screen-loading,
+html.in-iframe body.body-dashboard .iframe-auth-hint[hidden] { display: none !important; }
+#screen-editor { position: relative; z-index: 3; }
 
 .iframe-auth-hint {
   display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;
