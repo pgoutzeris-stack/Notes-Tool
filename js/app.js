@@ -1,0 +1,187 @@
+import {
+  listDocuments, listFolders, createDocument, createFolder, getDocument,
+  updateDocument, deleteDocument, ensureDefaultFolder,
+} from "./api.js";
+import { renderDashboard, extractClusters } from "./dashboard.js";
+import { NotesEditor } from "./editor.js";
+import { exportJson, exportHtml, exportMarkdown, exportPng, exportPdf } from "./export.js";
+import { debounce } from "./utils.js";
+
+let sb;
+let userId;
+let state = {
+  documents: [],
+  folders: [],
+  clusters: [],
+  filter: { folderId: "all", cluster: null, q: "", sort: "updated", view: "grid" },
+  currentDoc: null,
+};
+
+let editor;
+const saveDebounced = debounce(saveCurrentDoc, 1200);
+
+export function initApp(supabase) {
+  sb = supabase;
+  userId = window.RootsUser?._uid;
+  if (!userId) return;
+
+  editor = new NotesEditor(document.getElementById("screen-editor"), {
+    onChange: (doc, immediate) => {
+      state.currentDoc = doc;
+      setSaveStatus("Speichert…");
+      if (immediate) saveCurrentDoc();
+      else saveDebounced();
+    },
+    onSaveStatus: setSaveStatus,
+  });
+  editor.onBack = () => showDashboard();
+  editor.onExport = (type) => exportCurrent(type);
+
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  showDashboard();
+  try {
+    await ensureDefaultFolder(sb, userId);
+    state.folders = await listFolders(sb, userId);
+    state.documents = await listDocuments(sb, userId);
+    state.clusters = extractClusters(state.documents);
+    paintDashboard();
+  } catch (e) {
+    toast(e.message || "Notizen konnten nicht geladen werden", "error");
+  }
+}
+
+function paintDashboard() {
+  renderDashboard(document.getElementById("screen-dashboard"), state, {
+    onNew: createNewNote,
+    onNewFolder: createNewFolder,
+    onFilter: (patch) => {
+      Object.assign(state.filter, patch);
+      paintDashboard();
+    },
+    onOpen: openNote,
+    onToggleFav: toggleFavorite,
+    onDelete: removeNote,
+  });
+}
+
+function showDashboard() {
+  document.getElementById("screen-dashboard").style.display = "block";
+  document.getElementById("screen-editor").style.display = "none";
+  document.body.classList.add("body-dashboard");
+}
+
+function showEditor() {
+  document.getElementById("screen-dashboard").style.display = "none";
+  document.getElementById("screen-editor").style.display = "block";
+  document.body.classList.remove("body-dashboard");
+}
+
+async function createNewNote() {
+  const folderId = state.filter.folderId !== "all" && state.filter.folderId !== "fav"
+    ? state.filter.folderId
+    : state.folders[0]?.id;
+  const doc = await createDocument(sb, userId, {
+    title: "Neue Notiz",
+    folderId,
+    clusterLabel: state.filter.cluster,
+  });
+  state.documents.unshift(doc);
+  await openNote(doc.id);
+}
+
+async function createNewFolder() {
+  const name = prompt("Ordnername:");
+  if (!name?.trim()) return;
+  const folder = await createFolder(sb, userId, name.trim());
+  state.folders.push(folder);
+  paintDashboard();
+  toast("Ordner erstellt", "success");
+}
+
+async function openNote(id) {
+  try {
+    const doc = await getDocument(sb, id);
+    state.currentDoc = doc;
+    if (doc.content && editor.root.querySelector("#insp-tags")) {
+      editor.root.querySelector("#insp-tags").value = (doc.tags || []).join(", ");
+      editor.root.querySelector("#insp-cluster").value = doc.cluster_label || "";
+    }
+    editor.load(doc);
+    showEditor();
+    setSaveStatus("Gespeichert");
+  } catch (e) {
+    toast("Notiz konnte nicht geöffnet werden", "error");
+  }
+}
+
+async function saveCurrentDoc() {
+  const doc = state.currentDoc;
+  if (!doc?.id) return;
+  try {
+    const patch = {
+      title: doc.title,
+      content: doc.content,
+      tags: doc.tags || [],
+      cluster_label: doc.cluster_label || null,
+    };
+    await updateDocument(sb, doc.id, patch);
+    const idx = state.documents.findIndex((d) => d.id === doc.id);
+    if (idx >= 0) state.documents[idx] = { ...state.documents[idx], ...patch, updated_at: new Date().toISOString() };
+    setSaveStatus("Gespeichert");
+  } catch (e) {
+    setSaveStatus("Fehler beim Speichern");
+    toast("Speichern fehlgeschlagen", "error");
+  }
+}
+
+async function toggleFavorite(id) {
+  const doc = state.documents.find((d) => d.id === id);
+  if (!doc) return;
+  const is_favorite = !doc.is_favorite;
+  await updateDocument(sb, id, { is_favorite });
+  doc.is_favorite = is_favorite;
+  paintDashboard();
+}
+
+async function removeNote(id) {
+  if (!confirm("Notiz wirklich löschen?")) return;
+  await deleteDocument(sb, id);
+  state.documents = state.documents.filter((d) => d.id !== id);
+  paintDashboard();
+  toast("Notiz gelöscht", "info");
+}
+
+async function exportCurrent(type) {
+  const doc = state.currentDoc;
+  if (!doc) return;
+  try {
+    const canvas = editor.getCanvasEl();
+    if (type === "json") await exportJson(doc);
+    else if (type === "html") await exportHtml(doc, canvas);
+    else if (type === "md") await exportMarkdown(doc);
+    else if (type === "png") await exportPng(canvas, doc.title);
+    else if (type === "pdf") await exportPdf(canvas, doc.title);
+    toast("Export abgeschlossen", "success");
+  } catch (e) {
+    toast(e.message || "Export fehlgeschlagen", "error");
+  }
+}
+
+function setSaveStatus(text) {
+  const el = document.getElementById("editor-save-status");
+  if (el) el.textContent = text;
+}
+
+function toast(msg, kind = "info") {
+  const c = document.getElementById("toast-container");
+  const t = document.createElement("div");
+  t.className = `toast ${kind === "error" ? "error" : kind === "success" ? "success" : ""}`;
+  t.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.classList.add("fade-out"); setTimeout(() => t.remove(), 300); }, 3200);
+}
+
+window.notesToast = toast;
