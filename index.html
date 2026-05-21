@@ -132,24 +132,9 @@ async function onSession(session) {
   }
 }
 
-window.addEventListener('message', async (e) => {
+window.addEventListener('message', (e) => {
   if (e.origin !== 'https://pgoutzeris-stack.github.io') return;
   if (e.data?.type === 'roots-notes-refresh') {
-    void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
-    return;
-  }
-  if (e.data?.type === 'roots-auth-sync') {
-    const payload = e.data.session;
-    if (payload?.access_token && payload?.refresh_token) {
-      const { data, error } = await sb.auth.setSession({
-        access_token: payload.access_token,
-        refresh_token: payload.refresh_token,
-      });
-      if (!error && data?.session) {
-        void onSession(data.session);
-        return;
-      }
-    }
     void sb.auth.getSession().then(({ data: { session } }) => onSession(session));
   }
 });
@@ -158,8 +143,12 @@ window.addEventListener('roots-auth-ready', (e) => {
   if (e.detail?.session) void onSession(e.detail.session);
 });
 
-sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+const notesInIframe = document.documentElement.classList.contains('in-iframe');
+if (!notesInIframe) {
+  sb.auth.getSession().then(({ data: { session } }) => onSession(session));
+}
 sb.auth.onAuthStateChange((event, session) => {
+  if (notesInIframe && (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT')) return;
   if (event === 'SIGNED_OUT') { showLogin(); return; }
   if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     if (session) void onSession(session);
