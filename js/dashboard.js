@@ -6,58 +6,55 @@ export function renderDashboard(root, state, handlers) {
   const filtered = filterDocuments(documents, filter);
 
   root.innerHTML = `
-    <div class="dash-shell">
-      ${appHeaderHtml("Organisieren, visualisieren und exportieren")}
-      <div class="dash-greeting">
-        <h1>Deine Notizen</h1>
-        <p>Erstelle visuelle Notizen mit Formen, Tabellen und Verbindern – alles sicher in deinem Account.</p>
-      </div>
-      <div class="dash-layout">
-        <aside class="dash-sidebar">
-          <div class="sidebar-block">
-            <div class="sidebar-title">Ordner</div>
-            <div class="folder-list" id="folder-list">
-              <button type="button" class="folder-item ${filter.folderId === "all" ? "is-active" : ""}" data-folder="all">
-                <i class="fa-solid fa-layer-group"></i> Alle Notizen
-              </button>
-              <button type="button" class="folder-item ${filter.folderId === "fav" ? "is-active" : ""}" data-folder="fav">
-                <i class="fa-solid fa-star"></i> Favoriten
-              </button>
-              ${folders.map((f) => `
-                <button type="button" class="folder-item ${filter.folderId === f.id ? "is-active" : ""}" data-folder="${f.id}">
-                  <span class="folder-dot" style="background:${escapeHtml(f.color || "#206efb")}"></span>
-                  ${escapeHtml(f.name)}
-                </button>`).join("")}
-            </div>
-            <button type="button" class="btn-ghost btn-ghost--block" id="btn-new-folder"><i class="fa-solid fa-folder-plus"></i> Ordner</button>
+    ${appHeaderHtml("Organisieren, visualisieren und exportieren")}
+    <div class="dash-body">
+      <aside class="dash-sidebar">
+        <nav class="dash-nav">
+          <div class="dash-nav-section">Ordner</div>
+          <button type="button" class="dash-nav-item ${filter.folderId === "all" ? "active" : ""}" data-folder="all">
+            <i class="fa-solid fa-layer-group"></i> Alle Notizen
+          </button>
+          <button type="button" class="dash-nav-item ${filter.folderId === "fav" ? "active" : ""}" data-folder="fav">
+            <i class="fa-solid fa-star"></i> Favoriten
+          </button>
+          ${folders.map((f) => `
+            <button type="button" class="dash-nav-item ${filter.folderId === f.id ? "active" : ""}" data-folder="${f.id}">
+              <span class="folder-dot" style="background:${escapeHtml(f.color || "#206efb")}"></span>
+              ${escapeHtml(f.name)}
+            </button>`).join("")}
+          <button type="button" class="dash-nav-item" id="btn-new-folder">
+            <i class="fa-solid fa-folder-plus"></i> Neuer Ordner
+          </button>
+          <div class="dash-nav-section">Cluster</div>
+          <button type="button" class="dash-nav-item ${!filter.cluster ? "active" : ""}" data-cluster="">
+            <i class="fa-solid fa-diagram-project"></i> Alle
+          </button>
+          ${state.clusters.map((c) => `
+            <button type="button" class="dash-nav-item ${filter.cluster === c ? "active" : ""}" data-cluster="${escapeHtml(c)}">
+              <i class="fa-solid fa-tag"></i> ${escapeHtml(c)}
+            </button>`).join("")}
+        </nav>
+      </aside>
+      <main class="dash-main">
+        ${loadError ? `<div class="notes-error-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(loadError)}</div>` : ""}
+        <div class="dash-toolbar">
+          <h1 class="dash-title">Deine Notizen</h1>
+          <div class="dash-search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" class="dash-search" id="dash-search" placeholder="Notizen durchsuchen…" value="${escapeHtml(filter.q || "")}">
           </div>
-          <div class="sidebar-block">
-            <div class="sidebar-title">Cluster</div>
-            <div class="cluster-list" id="cluster-list">
-              <button type="button" class="cluster-chip ${!filter.cluster ? "is-active" : ""}" data-cluster="">Alle</button>
-              ${state.clusters.map((c) => `
-                <button type="button" class="cluster-chip ${filter.cluster === c ? "is-active" : ""}" data-cluster="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}
-            </div>
+          <select class="dash-select" id="dash-sort">
+            <option value="updated" ${filter.sort === "updated" ? "selected" : ""}>Zuletzt bearbeitet</option>
+            <option value="title" ${filter.sort === "title" ? "selected" : ""}>Titel A–Z</option>
+            <option value="created" ${filter.sort === "created" ? "selected" : ""}>Neueste zuerst</option>
+          </select>
+          <div class="view-toggle">
+            <button type="button" class="view-btn ${filter.view === "grid" ? "is-active" : ""}" data-view="grid" title="Raster"><i class="fa-solid fa-grip"></i></button>
+            <button type="button" class="view-btn ${filter.view === "list" ? "is-active" : ""}" data-view="list" title="Liste"><i class="fa-solid fa-list"></i></button>
           </div>
-        </aside>
-        <section class="dash-main">
-          ${loadError ? `<div class="notes-error-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(loadError)}</div>` : ""}
-          <div class="dash-toolbar">
-            <button type="button" class="btn-primary" id="btn-new-note"><i class="fa-solid fa-plus"></i> Neue Notiz</button>
-            <div class="search-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="search" id="dash-search" placeholder="Notizen durchsuchen…" value="${escapeHtml(filter.q || "")}">
-            </div>
-            <select id="dash-sort">
-              <option value="updated" ${filter.sort === "updated" ? "selected" : ""}>Zuletzt bearbeitet</option>
-              <option value="title" ${filter.sort === "title" ? "selected" : ""}>Titel A–Z</option>
-              <option value="created" ${filter.sort === "created" ? "selected" : ""}>Neueste zuerst</option>
-            </select>
-            <div class="view-toggle">
-              <button type="button" class="view-btn ${filter.view === "grid" ? "is-active" : ""}" data-view="grid"><i class="fa-solid fa-grip"></i></button>
-              <button type="button" class="view-btn ${filter.view === "list" ? "is-active" : ""}" data-view="list"><i class="fa-solid fa-list"></i></button>
-            </div>
-          </div>
+          <button type="button" class="btn-primary" id="btn-new-note"><i class="fa-solid fa-plus"></i> Neue Notiz</button>
+        </div>
+        <div class="dash-content">
           <div class="notes-grid ${filter.view === "list" ? "notes-grid--list" : ""}" id="notes-grid">
             ${filtered.length ? filtered.map((d) => noteCard(d, folders)).join("") : `
               <div class="notes-empty">
@@ -66,8 +63,8 @@ export function renderDashboard(root, state, handlers) {
                 <span>Erstelle deine erste Notiz mit Formen, Tabellen und Verbindern.</span>
               </div>`}
           </div>
-        </section>
-      </div>
+        </div>
+      </main>
     </div>`;
 
   updateAppHeader();
