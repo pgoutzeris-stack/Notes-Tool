@@ -192,16 +192,20 @@ input:focus, select:focus { border-color: var(--brand); box-shadow: var(--shadow
   height: 72px; border-radius: 10px; background: var(--status-bg); margin-bottom: .65rem;
   display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
 }
-.page-setup-preview::after {
-  content: ""; position: absolute; width: 38%; height: 52%; background: #fff;
-  border-radius: 3px; box-shadow: 0 2px 8px rgba(15,23,42,.1); border: 1px solid var(--line);
+.page-setup-sheet {
+  display: block; background: #fff; border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(15,23,42,.1); border: 1px solid var(--line);
+  aspect-ratio: var(--page-ar, 210 / 297);
 }
-.page-setup-preview--a4-landscape::after,
-.page-setup-preview--slide-16-9::after,
-.page-setup-preview--slide-4-3::after,
-.page-setup-preview--widescreen::after { width: 52%; height: 32%; }
-.page-setup-preview--fluid::after { width: 70%; height: 40%; }
-.page-setup-ratio { font-size: .65rem; font-weight: 700; color: var(--muted); z-index: 1; margin-top: 2.5rem; }
+.page-setup-preview--portrait .page-setup-sheet {
+  height: 58px; width: auto; max-width: 42%;
+}
+.page-setup-preview--landscape .page-setup-sheet {
+  width: 78%; height: auto; max-height: 36px;
+}
+.page-setup-preview--fluid .page-setup-sheet {
+  width: 76%; height: 38px; aspect-ratio: unset; border-radius: 6px;
+}
 .page-setup-cat { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: block; margin-bottom: .15rem; }
 .page-setup-card-body strong { display: block; font-size: .92rem; margin-bottom: .15rem; color: var(--ink); }
 .page-setup-card-body span:last-child { font-size: .75rem; color: var(--muted); line-height: 1.35; display: block; }

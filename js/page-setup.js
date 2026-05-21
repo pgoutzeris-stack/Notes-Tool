@@ -20,8 +20,8 @@ export function showPageSetup() {
         <div class="page-setup-grid">
           ${PAGE_PRESETS.map((p) => `
             <button type="button" class="page-setup-card ${p.id === "a4-portrait" ? "is-recommended" : ""}" data-preset="${p.id}">
-              <div class="page-setup-preview page-setup-preview--${p.id.replace(/[^a-z0-9]/g, "-")}">
-                <span class="page-setup-ratio">${p.fluid ? "∞" : `${p.width}:${p.height}`}</span>
+              <div class="page-setup-preview page-setup-preview--${p.fluid ? "fluid" : p.orientation}" style="--page-ar: ${p.width} / ${p.height || 1}">
+                <span class="page-setup-sheet" aria-hidden="true"></span>
               </div>
               <div class="page-setup-card-body">
                 <span class="page-setup-cat">${escapeHtml(p.category)}</span>
