@@ -177,6 +177,7 @@ export class NotesEditor {
     if (!Array.isArray(this.doc.content.objects)) this.doc.content.objects = [];
     this.titleInput.value = doc.title || "";
     this.selected.clear();
+    this.stopPresentation();
     this.pushHistory(true);
     this.renderAll();
   }
