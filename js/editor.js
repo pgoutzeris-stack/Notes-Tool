@@ -73,7 +73,6 @@ export class NotesEditor {
               <div class="canvas-world" id="canvas-world"></div>
               <div class="selection-box editor-ui" id="selection-box" hidden></div>
             </div>
-            <div class="canvas-minimap editor-ui" id="canvas-minimap"><div class="minimap-viewport"></div></div>
           </div>
           <aside class="editor-inspector">
             <div class="inspector-title">Eigenschaften</div>

@@ -110,6 +110,14 @@ async function createNewNote() {
     toast("Bitte warte, bis das Notes Tool vollständig geladen ist.", "error");
     return;
   }
+  showEditor();
+  setSaveStatus("Erstelle…");
+  editor.load({
+    title: "Neue Notiz",
+    tags: [],
+    cluster_label: state.filter.cluster || null,
+    content: { version: 1, viewport: { x: 0, y: 0, zoom: 1 }, objects: [], presentation: { slides: [] } },
+  });
   try {
     const folderId = state.filter.folderId !== "all" && state.filter.folderId !== "fav"
       ? state.filter.folderId
@@ -122,9 +130,10 @@ async function createNewNote() {
     state.documents.unshift(doc);
     document.getElementById("screen-auth-hint")?.setAttribute("hidden", "");
     document.getElementById("screen-loading")?.classList.add("is-done");
-    await openNote(doc.id);
+    await openNote(doc.id, { alreadyVisible: true });
   } catch (e) {
     console.error("Notes createNewNote", e);
+    showDashboard();
     toast(e.message || "Notiz konnte nicht erstellt werden", "error");
   }
 }
@@ -138,18 +147,21 @@ async function createNewFolder() {
   toast("Ordner erstellt", "success");
 }
 
-async function openNote(id) {
+async function openNote(id, opts = {}) {
+  if (!opts.alreadyVisible) showEditor();
+  setSaveStatus("Lade…");
   try {
     const doc = await getDocument(sb, id);
     state.currentDoc = doc;
-    if (doc.content && editor.root.querySelector("#insp-tags")) {
-      editor.root.querySelector("#insp-tags").value = (doc.tags || []).join(", ");
-      editor.root.querySelector("#insp-cluster").value = doc.cluster_label || "";
-    }
+    const tagsEl = editor.root.querySelector("#insp-tags");
+    const clusterEl = editor.root.querySelector("#insp-cluster");
+    if (tagsEl) tagsEl.value = (doc.tags || []).join(", ");
+    if (clusterEl) clusterEl.value = doc.cluster_label || "";
     editor.load(doc);
     showEditor();
     setSaveStatus("Gespeichert");
   } catch (e) {
+    if (!opts.alreadyVisible) showDashboard();
     toast("Notiz konnte nicht geöffnet werden", "error");
   }
 }
