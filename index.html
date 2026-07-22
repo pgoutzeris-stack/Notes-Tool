@@ -86,7 +86,12 @@ window.RootsUser = window.RootsUser || {
   isAdmin() { return String(this._p?.app_role || '').trim() === 'admin'; },
 };
 try {
-  if (window.self !== window.top) document.documentElement.classList.add('in-iframe');
+  if (window.self !== window.top) {
+    document.documentElement.classList.add('in-iframe');
+    if (new URLSearchParams(window.location.search).get('authBroker') === 'v1') {
+      window.ROOTS_TOKENLESS_EMBED = true;
+    }
+  }
 } catch {
   document.documentElement.classList.add('in-iframe');
 }
@@ -97,12 +102,12 @@ try {
 import { SB_URL, SB_ANON } from './config.js';
 import { initApp } from './js/app.js';
 
-const { createClient } = window.supabase;
-const sb = createClient(SB_URL, SB_ANON, {
+const notesTokenless = window.RootsUserBridge?.TOKENLESS_EMBED === true;
+const sb = notesTokenless ? null : window.supabase.createClient(SB_URL, SB_ANON, {
   auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false, storage: window.localStorage },
 });
-window.__rootsSupabaseClient = sb;
-if (document.documentElement.classList.contains('in-iframe') && window.RootsUserBridge?.syncAuthFromParentStorage) {
+if (sb) window.__rootsSupabaseClient = sb;
+if (!notesTokenless && document.documentElement.classList.contains('in-iframe') && window.RootsUserBridge?.syncAuthFromParentStorage) {
   void window.RootsUserBridge.syncAuthFromParentStorage();
 }
 const LOGIN_HTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Anmelden';
@@ -148,7 +153,7 @@ async function onSession(session) {
 }
 
 window.addEventListener('message', (e) => {
-  if (e.origin !== 'https://pgoutzeris-stack.github.io') return;
+  if (e.source !== window.parent || e.origin !== 'https://pgoutzeris-stack.github.io') return;
   if (e.data?.type === 'roots-notes-refresh') {
     if (window.notesSoftRefresh) void window.notesSoftRefresh();
     else void window.RootsUserBridge?.syncAuthFromParentStorage?.();
@@ -165,7 +170,20 @@ window.addEventListener('roots-auth-ready', (e) => {
 });
 
 const notesInIframe = document.documentElement.classList.contains('in-iframe');
-if (!notesInIframe) {
+if (notesTokenless) {
+  window.RootsUserBridge.request('user-context').then((context) => {
+    if (!context?.user?.id) throw new Error('Nicht angemeldet');
+    window.RootsUser._uid = context.user.id;
+    window.RootsUser._p = context.profile || { id: context.user.id, email: context.user.email, app_role: 'reader' };
+    document.getElementById('screen-login').style.display = 'none';
+    document.getElementById('screen-auth-hint')?.setAttribute('hidden', '');
+    document.body.classList.add('body-dashboard');
+    initApp(null);
+  }).catch((error) => {
+    console.error('Notes tokenless start', error);
+    showLogin();
+  }).finally(() => document.getElementById('screen-loading')?.classList.add('is-done'));
+} else if (!notesInIframe) {
   sb.auth.getSession().then(({ data: { session } }) => onSession(session));
   sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') { showLogin(); return; }
@@ -188,6 +206,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Anmelden…';
   err.classList.remove('visible');
+  if (!sb) return;
   const { error } = await sb.auth.signInWithPassword({
     email: document.getElementById('login-email').value.trim(),
     password: document.getElementById('login-password').value,
