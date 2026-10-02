@@ -118,7 +118,7 @@ export class NotesEditor {
             <div class="inspector-title">Dokument</div>
             <div class="doc-meta-card">
               <span class="doc-meta-label">Format</span>
-              <strong id="meta-preset">—</strong>
+              <strong id="meta-preset">-</strong>
             </div>
             <div class="doc-meta-card">
               <span class="doc-meta-label">Wörter</span>

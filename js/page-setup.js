@@ -15,7 +15,7 @@ export function showPageSetup() {
         <div class="page-setup-head">
           <span class="page-setup-kicker"><i class="fa-solid fa-wand-magic-sparkles"></i> Neues Dokument</span>
           <h2 id="page-setup-title">Format wählen</h2>
-          <p>Wähle das Seitenverhältnis für dein Dokument — du kannst es später unter Layout anpassen.</p>
+          <p>Wähle das Seitenverhältnis für dein Dokument - du kannst es später unter Layout anpassen.</p>
         </div>
         <div class="page-setup-grid">
           ${PAGE_PRESETS.map((p) => `

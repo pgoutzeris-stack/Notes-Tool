@@ -7,7 +7,7 @@ export function renderDashboard(root, state, handlers) {
   const filtered = filterDocuments(documents, filter);
 
   root.innerHTML = `
-    ${appHeaderHtml("Moderne Dokumente — schreiben, strukturieren, exportieren")}
+    ${appHeaderHtml("Moderne Dokumente - schreiben, strukturieren, exportieren")}
     <div class="dash-body">
       <aside class="dash-sidebar">
         <nav class="dash-nav">
@@ -46,7 +46,7 @@ export function renderDashboard(root, state, handlers) {
           </div>
           <select class="dash-select" id="dash-sort">
             <option value="updated" ${filter.sort === "updated" ? "selected" : ""}>Zuletzt bearbeitet</option>
-            <option value="title" ${filter.sort === "title" ? "selected" : ""}>Titel A–Z</option>
+            <option value="title" ${filter.sort === "title" ? "selected" : ""}>Titel A-Z</option>
             <option value="created" ${filter.sort === "created" ? "selected" : ""}>Neueste zuerst</option>
           </select>
           <div class="view-toggle">
